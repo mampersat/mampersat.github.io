@@ -7,19 +7,24 @@ start = datetime.now()
 conn = MySQLdb.connect(host="localhost", user="root", passwd="root", db="minion")
 
 query = """
-SELECT ts, t, lux FROM report WHERE id = 1 and ts >= now() - INTERVAL 14 DAY
+SELECT id, ts, t, lux FROM report WHERE ts >= now() - INTERVAL 5 DAY
 """
 
 dictCursor = conn.cursor(MySQLdb.cursors.Cursor)
 dictCursor.execute(query)
 data = dictCursor.fetchall()
 
-temperature = []
+t1 = []
+t2 = []
 lux = []
 for row in data:
-    temperature.append([ int( row[0].strftime('%s')), float(row[1]), ])
-    if row[2]:
-        lux.append([ int( row[0].strftime('%s')), -float(row[2]), ])
+    if row[0] == 1:
+        t1.append([ int( row[1].strftime('%s'))*1000, float(row[2]), ])
+        if row[3]:
+            lux.append([ int( row[1].strftime('%s'))*1000, -float(row[3]), ])
+
+    if row[0] == 2:
+        t2.append([ int( row[1].strftime('%s'))*1000, float(row[2]), ])
 
 chart = Highchart()
 
@@ -28,10 +33,10 @@ options = {
                 'zoomType': 'x'
             },
             'title': {
-                'text': 'Minion 1'
+                'text': 'Minions'
             },
             'xAxis': {
-                'type': 'datetime'
+                'type': 'datetime',
             },
             'yAxis': [{
                     'title': {
@@ -47,7 +52,8 @@ options = {
 
 chart.set_dict_options(options)
 
-chart.add_data_set(temperature, series_type='line', name='m1.temp', yAxis=0)
+chart.add_data_set(t1, series_type='line', name='m1.temp', yAxis=0)
+chart.add_data_set(t2, series_type='line', name='m2.temp', yAxis=0)
 chart.add_data_set(lux, series_type='line', name='m1.lux', yAxis=1)
 
 chart.save_file()
